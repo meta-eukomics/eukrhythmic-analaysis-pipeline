@@ -1,0 +1,27 @@
+__default__:
+  account: halexander 
+  command_options:
+    slurm:
+      account: --account={}
+      command: sbatch --parsable
+      key_mapping: null
+      mem: --mem={}g
+      name: --job-name={}
+      nodes: -N {}
+      queue: --partition={}
+      threads: -n {}
+      time: --time={}
+  cpupertask: 1
+  mem: 180
+  nodes: 1
+  queue: compute 
+  system: slurm
+  tasks: 1
+  time: 8000
+required:
+  accountname: halexander
+  defaultqueue: scavenger
+  maxcores: 16
+  maxcpuspertask: 40
+  maxmemory: 180
+  maxtasks: 1

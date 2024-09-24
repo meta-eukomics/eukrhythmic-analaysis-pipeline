@@ -1,0 +1,43 @@
+### Parameters expected to be changed under normal use ###
+## INPUT DATA AND FORMATTING ##
+# formatted input file; described in README
+jobname: OCB
+shortid_code: Seq
+metaT_sample: input/ocbdata.txt
+spikefile: /vortexfs1/omics/alexander/ncohen/BATS2019-clio-metaT/spike/spike.fa #requires a spikefile
+adapter: static/all-adapters.fa
+## DIRECTORIES DURING PROCESSING ##
+inputDIR: /vortexfs1/omics/alexander/data/2024-metat-intercomp/raw_data
+outputDIR: ../output
+assembledDIR: assembled
+renamedDIR: renamed
+# this is where all the intermediate outputs will go.
+scratch: /scratch/ncohen
+## ANALYSIS OPTIONS ##
+# 1 indicates that "spikefile" is used to clean reads
+runbbmap: 0
+removerrna: 1
+filterlowreads: 1
+# flag to be used to decide whether QUAST/salmon quantification performed
+checkqual: 1
+kmers:
+    - 20
+    - 50
+    - 110
+assemblers:
+    - rnaspades
+    #- trinity
+separategroups: 1
+kegg_prot_db: placeholder
+kegg: placeholder
+busco: placeholder
+pfam: placeholder
+### Parameters only to be changed by advanced users ###
+transdecodercutoff: 100
+secondclustercutoff: 0.95
+prcentidcutoff: 0.95
+defaultkmer: 25
+mincontig: 100
+rewritecluster: 0
+annotatecag: 1
+eggnogDIR:  /vortexfs1/omics/alexander/data/databases/eggnog-mapper-data/

@@ -1,0 +1,10 @@
+name: eukrhythmic
+channels:
+        - bioconda
+        - conda-forge
+dependencies:
+        - snakemake>=6.0.0
+        - python>=3.7
+        - mamba
+        - pandas
+        - pyyaml
