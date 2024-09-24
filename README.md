@@ -1,6 +1,6 @@
 # Intercomparison common metatranscriptomic pipeline
 
-This repo contains the parameters and setup information for the base-run of all samples from the OCB meta-eukomics intercomparison. 
+This repo contains the parameters and setup information for the base-run of all samples from the OCB meta-eukomics intercomparison. Information on the general pipeline used can be found below on this readme. 
 
 Samples are as follows: 
 
