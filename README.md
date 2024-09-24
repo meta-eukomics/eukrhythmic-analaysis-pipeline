@@ -38,7 +38,7 @@ This repo contains the parameters and setup information for the base-run of all 
 
 ## General statistics
 
-Raw read inforation across the samples above can be found here: 
+Raw read information from fastqc across the samples above can be found [here](https://meta-eukomics.github.io/eukrhythmic-analaysis-pipeline/outputs/fastqc/multiqc_report.html). 
 
 ----------------------------------------
 This `README` file is a brief introduction to `eukrhythmic`. For more detailed information, please visit the [readthedocs](https://eukrhythmic.readthedocs.io/en/latest/). 
