@@ -2,7 +2,7 @@
 
 This repo contains the parameters and setup information for the base-run of all samples from the OCB meta-eukomics intercomparison. Information on the general pipeline used can be found below on this readme. 
 
-Samples are as follows: 
+## Samples are as follows: 
 
 | Sample Name | Filter Identifier | Long Filter Identifier     |
 |-------------|-------------------|----------------------------|
@@ -36,6 +36,9 @@ Samples are as follows:
 |    HS059    | A-4               | A-4 MetaT-IC CliOMZ  |
 |    HS060    | B-7               | B-7 MetaT-IC CliOMZ |
 
+## General statistics
+
+Raw read inforation across the samples above can be found here: 
 
 ----------------------------------------
 This `README` file is a brief introduction to `eukrhythmic`. For more detailed information, please visit the [readthedocs](https://eukrhythmic.readthedocs.io/en/latest/). 
