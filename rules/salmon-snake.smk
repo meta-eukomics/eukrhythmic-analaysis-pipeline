@@ -1,0 +1,124 @@
+configfile: "config.yaml"
+
+import io
+import os
+import sys
+from snakemake.exceptions import print_exception, WorkflowError
+import sys
+sys.path.insert(1, '../scripts')
+from importworkspace import *
+    
+def salmon_get_samples(assembly,left_or_right,list_format):
+    foldername = "bbmap"
+    extensionname = "clean"
+    if DROPSPIKE == 0:
+        foldername = "firsttrim"
+        extensionname = "trimmed"
+    samplelist = list(SAMPLEINFO.loc[SAMPLEINFO['AssemblyGroup'] == assembly]['SampleID']) 
+    if assembly == "merged":
+        samplelist = list(SAMPLEINFO['SampleID'])
+
+    if left_or_right == "left":
+        filenames = [os.path.join(OUTPUTDIR, foldername, sample + "_1." + extensionname + ".fastq.gz") 
+                      for sample in samplelist]
+    else:
+        filenames = [os.path.join(OUTPUTDIR, foldername, sample + "_2." + extensionname + ".fastq.gz") 
+                      for sample in samplelist]
+    if list_format:
+        return filenames
+    else:
+        return " ".join(filenames)
+        
+rule salmon_indiv:
+    input: 
+        fastafile = os.path.join(OUTPUTDIR, "assembled", "{assembly}_{assembler}.fasta"),
+        left = lambda filename: salmon_get_samples(filename.assembly, "left", list_format = True),
+        right = lambda filename: salmon_get_samples(filename.assembly, "right", list_format = True)
+    output:
+        os.path.join(OUTPUTDIR, "indiv_salmon", "salmon_quant_assembly_{assembly}_{assembler}", "quant.sf")
+    params:
+        libtype = "A",
+        indexname = os.path.join(OUTPUTDIR, "indiv_salmon", "salmon_index_assembly_{assembly}_{assembler}"),
+        kval = 31,
+        outdir = os.path.join(OUTPUTDIR, "indiv_salmon", "salmon_quant_assembly_{assembly}_{assembler}"),
+        left = lambda filename: salmon_get_samples(filename.assembly, "left", list_format = False),
+        right = lambda filename: salmon_get_samples(filename.assembly, "right", list_format = False)
+    log:
+        err = os.path.join("logs","salmon","indiv_{assembly}_{assembler}_err.log"),
+        out = os.path.join("logs","salmon","indiv_{assembly}_{assembler}_out.log")
+    conda: "../envs/salmon-env.yaml"
+    shell:
+        """
+        salmon index -t {input.fastafile} -i {params.indexname} -k {params.kval} 2> {log.err} 1> {log.out}
+        salmon quant -i {params.indexname} -l {params.libtype} -1 {input.left} -2 {input.right} --validateMappings -o {params.outdir} 2>> {log.err} 1>> {log.out}
+        """
+        
+rule salmon_merged:
+    input: 
+        fastafile = os.path.join(OUTPUTDIR, "merged", "{assembly}_merged.fasta"),
+        left = lambda filename: salmon_get_samples(filename.assembly, "left", list_format = True),
+        right = lambda filename: salmon_get_samples(filename.assembly, "right", list_format = True)
+    output:
+        os.path.join(OUTPUTDIR, "merged_salmon", "salmon_quant_assembly_{assembly}", "quant.sf")
+    params:
+        libtype = "A",
+        indexname = os.path.join(OUTPUTDIR, "merged_salmon", "salmon_index_assembly_{assembly}"),
+        outdir = os.path.join(OUTPUTDIR, "merged_salmon", "salmon_quant_assembly_{assembly}"),
+        kval = 31
+    log:
+        err = os.path.join("logs","salmon","indiv_{assembly}_err.log"),
+        out = os.path.join("logs","salmon","indiv_{assembly}_out.log")
+    conda: "../envs/salmon-env.yaml"
+    shell:
+        """
+        salmon index -t {input.fastafile} -i {params.indexname} -k {params.kval} 2> {log.err} 1> {log.out}
+        salmon quant -i {params.indexname} -l {params.libtype} -1 {input.left} -2 {input.right} --validateMappings -o {params.outdir} 2>> {log.err} 1>> {log.out}
+        """
+    
+rule salmon_clustering:
+    input: 
+        assemblyfile = os.path.join(OUTPUTDIR, "cluster_{folder}", "{assembly}_merged.fasta"),
+        left = lambda filename: salmon_get_samples(filename.assembly, "left", list_format = True),
+        right = lambda filename: salmon_get_samples(filename.assembly, "right", list_format = True)
+    output:
+        os.path.join(OUTPUTDIR, "salmon_{folder}", "salmon_quant_assembly_{assembly}", "quant.sf")
+    params:
+        libtype = "A",
+        indexname = os.path.join(OUTPUTDIR, "salmon_{folder}", "salmon_index_assembly_{assembly}"),
+        outdir = os.path.join(OUTPUTDIR, "salmon_{folder}", "salmon_quant_assembly_{assembly}"),
+        decoysfile = "decoys_{assembly}.txt",
+        kval = 31
+    log:
+        err = os.path.join("logs","salmon","{folder}_{assembly}_err.log"),
+        out = os.path.join("logs","salmon","{folder}_{assembly}_out.log")
+    conda:
+        "../envs/salmon-env.yaml"
+    shell:
+        """
+        salmon index -t {input.assemblyfile} -i {params.indexname} -k {params.kval} 2> {log.err} 1> {log.out}
+        salmon quant -i {params.indexname} -l {params.libtype} -1 {input.left} -2 {input.right} --validateMappings -o {params.outdir} 2>> {log.err} 1>> {log.out}
+        """
+        
+rule salmon_clustering_raw:
+    input: 
+        assemblyfile = os.path.join(OUTPUTDIR, "cluster_{folder}", "merged_merged.fasta"),
+        left = lambda filename: salmon_get_samples(filename.assembly, "left", list_format = True),
+        right = lambda filename: salmon_get_samples(filename.assembly, "right", list_format = True)
+    output:
+        os.path.join(OUTPUTDIR, "salmon_{folder}", "raw_individual", "salmon_quant_assembly_{assembly}", "quant.sf")
+    params:
+        libtype = "A",
+        indexname = os.path.join(OUTPUTDIR, "salmon_{folder}", "salmon_index_assembly_{assembly}"),
+        outdir = os.path.join(OUTPUTDIR, "salmon_{folder}", "raw_individual", "salmon_quant_assembly_{assembly}"),
+        decoysfile = "decoys_{assembly}.txt",
+        kval = 31
+    log:
+        err = os.path.join("logs","salmon","{folder}_{assembly}_err.log"),
+        out = os.path.join("logs","salmon","{folder}_{assembly}_out.log")
+    conda:
+        "../envs/salmon-env.yaml"
+    shell:
+        """
+        salmon index -t {input.assemblyfile} -i {params.indexname} -k {params.kval} 2> {log.err} 1> {log.out}
+        salmon quant -i {params.indexname} -l {params.libtype} -1 {input.left} -2 {input.right} --validateMappings -o {params.outdir} 2>> {log.err} 1>> {log.out}
+        """

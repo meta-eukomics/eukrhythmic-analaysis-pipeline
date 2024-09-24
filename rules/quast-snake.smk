@@ -1,0 +1,104 @@
+configfile: "config.yaml"
+
+import io
+import os
+import pandas as pd
+from snakemake.exceptions import print_exception, WorkflowError
+import sys
+sys.path.insert(1, '../scripts')
+from importworkspace import *
+
+def get_samples(assemblygroup):
+    samplelist = list(SAMPLEINFO.loc[SAMPLEINFO['AssemblyGroup'] == assemblygroup]['SampleID']) 
+    return samplelist
+    
+def combineassemblers(assembly, final=False):
+    if final:
+        return(os.path.join(OUTPUTDIR, "cluster3", assembly + "_transdecoded.fasta"))
+    return(" ".join([os.path.join(ASSEMBLEDDIR, assembly + "_" + curr + ".fasta") for curr in ASSEMBLERS]))
+
+def combineassemblerslist(assembly, final=False):
+    if final:
+        return(os.path.join(OUTPUTDIR, "cluster3", assembly + "_transdecoded.fasta"))
+    return([os.path.join(ASSEMBLEDDIR, assembly + "_" + curr + ".fasta") for curr in ASSEMBLERS])
+ 
+rule quast:
+    input:
+        outputassemblies = lambda wildcards: combineassemblerslist(wildcards.assembly) 
+    output:
+        directory(os.path.join(OUTPUTDIR, "quast", "{assembly}"))
+    params:
+        assemblers = ",".join(ASSEMBLERS),
+        outputassemblies = lambda wildcards: combineassemblers(wildcards.assembly) 
+    log:
+        err = os.path.join("logs","quast","individual_{assembly}_err.log"),
+        out = os.path.join("logs","quast","individual_{assembly}_out.log")
+    conda:
+        "../envs/quast-env.yaml"
+    shell:
+        '''
+        quast {params.outputassemblies} -o {output} --threads 8 --labels {params.assemblers} 2> {log.err} 1> {log.out}
+        '''
+        
+rule combinequast:
+    input:
+        quastdir = [os.path.join(OUTPUTDIR, "quast", curr) for curr in assemblygroups]
+    output:
+        os.path.join(OUTPUTDIR, "quast", "fullresults", "allresults.tsv")
+    params:
+        outputfile = os.path.join(OUTPUTDIR, "quast", "fullresults", "allresults.tsv"),
+        assemblers = ",".join(ASSEMBLERS),
+        quastdir = os.path.join(OUTPUTDIR, "quast") 
+    run:
+        quastfiles = os.listdir(params.quastdir)
+        if len(quastfiles) > 0:
+            outputassemblers = pd.DataFrame()
+            for r in quastfiles:
+                if os.path.isfile(os.path.join(params.quastdir, r, "report.tsv")):
+                    currentreport = pd.read_csv(os.path.join(params.quastdir, r, "report.tsv"), index_col = 0, sep = "\t")
+                    for c in range(0,len(currentreport.columns)):
+                        currentreport = currentreport.rename(columns={currentreport.columns[c]: (currentreport.columns[c] + 
+                                                                                                 "_" + str(r))})
+                    outputassemblers = pd.concat([outputassemblers,currentreport], axis = 1)
+        outputassemblers.to_csv(path_or_buf = params.outputfile, sep = "\t")
+        
+rule quast_merged_transdecoded:
+    input:
+        outputassemblies = os.path.join(OUTPUTDIR, "cluster_{folder}", "{assembly}_merged.fasta")
+    output:
+        directory(os.path.join(OUTPUTDIR, "quast_{folder}", "{assembly}"))
+    params:
+        assemblers = ",".join(ASSEMBLERS),
+        assembly = "{assembly}",
+        outputassemblies = os.path.join(OUTPUTDIR, "cluster_{folder}", "{assembly}_merged.fasta") 
+    log:
+        err = os.path.join("logs","quast","{folder}_{assembly}_err.log"),
+        out = os.path.join("logs","quast","{folder}_{assembly}_out.log")
+    conda:
+        "../envs/quast-env.yaml"
+    shell:
+        '''
+        quast {params.outputassemblies} -o {output} --threads 8 --labels {params.assembly} 2> {log.err} 1> {log.out}
+        '''        
+        
+rule combinequastmerge:
+    input:
+        quastdir = [os.path.join(OUTPUTDIR, "quast_{folder}", curr) for curr in assemblygroups]
+    output:
+        os.path.join(OUTPUTDIR, "quast_{folder}", "fullresults", "allresults.tsv")
+    params:
+        outputfile = os.path.join(OUTPUTDIR, "quast_{folder}", "fullresults", "allresults.tsv"),
+        assemblers = ",".join(ASSEMBLERS),
+        quastdir = os.path.join(OUTPUTDIR, "quast_{folder}")
+    run:
+        quastfiles = os.listdir(os.path.join(OUTPUTDIR, "quast"))
+        if len(quastfiles) > 0:
+            outputassemblers = pd.DataFrame()
+            for r in quastfiles:
+                if os.path.isfile(os.path.join(params.quastdir, r, "report.tsv")):
+                    currentreport = pd.read_csv(os.path.join(params.quastdir, r, "report.tsv"), index_col = 0, sep = "\t")
+                    for c in range(0,len(currentreport.columns)):
+                        currentreport = currentreport.rename(columns={currentreport.columns[c]: 
+                                                                      (currentreport.columns[c] + "_" + str(r))})
+                    outputassemblers = pd.concat([outputassemblers,currentreport], axis = 1)
+        outputassemblers.to_csv(path_or_buf = params.outputfile, sep = "\t")

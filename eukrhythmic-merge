@@ -1,0 +1,78 @@
+configfile: "config.yaml"
+
+import io
+import os
+from os import listdir
+from os.path import isfile, join
+import sys
+import pandas as pd
+import numpy as np
+import pathlib
+from snakemake.exceptions import print_exception, WorkflowError  
+sys.path.insert(1, 'scripts')
+
+# Import relevant variable from config; exit if not supplied
+import importworkspace
+from importworkspace import *
+os.system("python " + os.path.join("scripts", "importworkspace.py"))
+
+# Contains function to check that variables are present and formatted correctly beyond provided values in config file
+import checkrequirements
+from checkrequirements import *
+
+## CHECK THAT ALL REQUIREMENTS ARE SATISFIED BY EXECUTING checkrequirements() from `scripts/checkrequirements.py` ##
+checkrequirementsfct()
+
+include: "rules/06-AGM.smk"
+include: "rules/07-CAG.smk"
+include: "rules/08-CAG-proteins.smk"
+include: "rules/09-CAG-mapping.smk"
+include: "rules/10-CAG-quality.smk"
+include: "rules/11-SWAM.smk"
+include: "rules/12-MAD.smk"
+include: "rules/13-MAD-proteins.smk"
+include: "rules/14-MAD-mapping.smk"
+include: "rules/15-MAD-quality.smk"
+include: "rules/16-MAD-taxonomy.smk"
+include: "rules/17-MAD-function.smk"
+
+ruleorder: run_busco > busco
+
+rule all:
+    input:
+        # MERGE BY ASSEMBLY GROUP
+        agm06 = expand(os.path.join(OUTPUTDIR, "intermediate-files", 
+                                    "02-assembly", "06-AGM", "{assembly}_merged.fasta"), zip,
+                                    assembly = assemblygroups),
+        # CLUSTER MERGED ASSEMBLY GROUPS
+        cag07 = expand(os.path.join(OUTPUTDIR, "intermediate-files",\
+                                "03-merge", "07-CAG",\
+                                "{assembly}_merged.fasta"), assembly = assemblygroups),
+        # GET PROTEINS FROM CLUSTERED ASSEMBLY GROUP OUTPUT
+        cagproteins08 = expand(os.path.join(OUTPUTDIR, "intermediate-files", "04-compare",
+                                            "08-CAG-proteins",
+                                            "{assembly}_CAG.fasta.transdecoder.cds"),
+                                            assembly = assemblygroups),
+        # GET SALMON MAPPING FROM CLUSTERED ASSEMBLY GROUP OUTPUT
+        cagmapping08 = expand(os.path.join(OUTPUTDIR, "intermediate-files", "04-compare",
+                                           "09-CAG-mapping", "salmon", "{assembly}_quant", "quant.sf"),
+                                            assembly = filenames),
+        # GET QUAST RESULTS FROM CLUSTERED ASSEMBLY GROUP OUTPUT
+        cagquality08 = os.path.join(OUTPUTDIR, "intermediate-files", "04-compare",
+                                    "10-CAG-quality", "combined", "all.tsv"),
+        # MERGE ACROSS ALL SAMPLES
+        swam11 = os.path.join(OUTPUTDIR, "intermediate-files", "02-assembly", "11-SWAM", "merged.fasta"),
+        # CLUSTER MERGED BY SAMPLES
+        mad12 = os.path.join(OUTPUTDIR, "intermediate-files",
+                            "03-merge", "12-MAD", "MAD.fasta"),
+        # TRANSDECODER MERGED BY SAMPLES
+        madproteins13 = os.path.join(OUTPUTDIR, "intermediate-files", "04-compare",
+                                     "13-MAD-proteins", "MAD.fasta.transdecoder.pep"),
+        # MAPPING MERGED BY SAMPLES
+        madmapping14 = expand(os.path.join(OUTPUTDIR, "intermediate-files", "04-compare", "14-MAD-mapping",
+                                    "salmon", "{assembly}_quant", "quant.sf"), assembly = filenames),
+        madmapping14_merged = expand(os.path.join(OUTPUTDIR, "intermediate-files", "04-compare", "14-MAD-mapping",
+                                    "salmon", "{assembly}_quant", "quant.sf"), assembly = "merged"),
+        # QUALITY MERGED BY SAMPLES
+        madquality15 = os.path.join(OUTPUTDIR, "intermediate-files", "04-compare",\
+                               "15-MAD-quality", "quast", "report.tsv")

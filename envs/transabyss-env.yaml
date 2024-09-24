@@ -1,0 +1,10 @@
+name: transabyss
+channels:
+    - bioconda
+    - anaconda
+    - conda-forge
+dependencies:
+    - transabyss
+    - abyss
+    - python
+    - icu==58.2
