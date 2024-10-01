@@ -41,6 +41,8 @@ This repo contains the parameters and setup information for the base-run of all 
 
 Raw read information from fastqc across the samples above can be found [here](https://meta-eukomics.github.io/eukrhythmic-analaysis-pipeline/outputs/fastqc/multiqc_report.html). 
 
+See assembly metrics from rnaQuast [here](https://github.com/meta-eukomics/eukrhythmic-analaysis-pipeline/blob/main/outputs/rnaquast/rnaQuast_metrics.ipynb).
+
 
 
 
